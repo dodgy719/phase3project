@@ -2,6 +2,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
+import pickle
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output
 
@@ -14,16 +15,11 @@ app = dash.Dash()
 server = app.server
 
 df = pd.read_csv('cleaned_churn_data.csv')
-df.info()
 df.drop(columns=['Unnamed: 0'], axis = 1, inplace=True)
-
 X = df.drop(columns=['churn'], axis = 1)
 y = df['churn']
-
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state = 42)
-
-dtree_default = DecisionTreeClassifier()
-dtree_default.fit(X_train, y_train)
+loaded_model = pickle.load(open('dtree.sav', 'rb'))
 
 app.layout = html.Div([
     # Setting the main title of the Dashboard
@@ -54,7 +50,7 @@ app.layout = html.Div([
               [Input('my-dropdown', 'value')])
 def update_graph(selected_dropdown):
     title = 'Decision Tree Confusion Matrix'
-    cm = list(confusion_matrix(y_test, dtree_default.predict(X_test)))
+    cm = list(confusion_matrix(y_test, loaded_model.predict(X_test)))
     labels = ['Retained', 'Churned']
     data = go.Heatmap(z=cm, y=labels, x=labels)
     annotations = []
@@ -85,7 +81,7 @@ def update_graph(selected_dropdown):
 def update_graph(selected_dropdown_value):
     title = 'Decision Tree Feature Importances'
     feature_list = list(X_train.columns)
-    importances = dtree_default.feature_importances_
+    importances = loaded_model.feature_importances_
     data = go.Bar(x = importances, y = feature_list, orientation = 'h')
     fig = go.Figure(data = data)
     return fig
